@@ -101,6 +101,6 @@ public class BookService {
         Book createdBook = bookRepository.save(newBook);
         log.info("Saved new book {}", createdBook);
 
-        return DTOMapper.convert(createdBook, author)
+        return DTOMapper.convert(new BookWithAuthor(createdBook, author));
     }
 }

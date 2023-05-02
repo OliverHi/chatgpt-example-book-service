@@ -46,7 +46,7 @@ public class BookService {
         return books.stream()
                 .map(book -> {
                     Author matchingAuthor = authors.stream()
-                            .filter(author -> author.getId() == book.getId())
+                            .filter(author -> author.getId().equals(book.getAuthor()))
                             .findFirst()
                             .orElse(null);
                     log.warn("Found book {} without valid author (id={})", book.getId(), book.getId());
@@ -70,8 +70,13 @@ public class BookService {
             throw new InvalidBookCreationRequest("You have to provide an author id or create a new author for this book");
         }
 
+        bookRepository.findByTitleOrIsbn(bookCreateDTO.title(), bookCreateDTO.isbn())
+                .ifPresent(book -> {
+                    throw new BookAlreadyExistsException("The book already exists with id " + book.getId());
+                });
+
         if (bookCreateDTO.authorId() != null) {
-            return tryToCeateBookForExistingAuthor(bookCreateDTO);
+            return tryToCreateBookForExistingAuthor(bookCreateDTO);
         } else {
             Book book = new Book(null, null, bookCreateDTO.isbn(), bookCreateDTO.title(), ""); // TODO get description
             Author author = new Author(null, bookCreateDTO.authorCreateDTO().firstName(), bookCreateDTO.authorCreateDTO().lastName());
@@ -80,14 +85,9 @@ public class BookService {
         }
     }
 
-    private BookDTO tryToCeateBookForExistingAuthor(BookCreateDTO bookCreateDTO) {
+    private BookDTO tryToCreateBookForExistingAuthor(BookCreateDTO bookCreateDTO) {
         Author author = authorRepository.findById(bookCreateDTO.authorId())
                 .orElseThrow(() -> new MissingDataException("This author id does not exist"));
-
-        bookRepository.findByTitleOrIsbn(bookCreateDTO.title(), bookCreateDTO.isbn())
-                .ifPresent(book -> {
-                    throw new BookAlreadyExistsException("The book already exists with id " + book.getId());
-                });
 
         Book newBook = Book.builder()
                 .id(UUID.randomUUID())

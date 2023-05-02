@@ -30,7 +30,7 @@ public class DTOMapper {
                 bookOfAuthor.getBook().getId(),
                 bookOfAuthor.getFullAuthorName(),
                 bookOfAuthor.getBook().getIsbn(),
-                bookOfAuthor.getBook().getIsbn(),
+                bookOfAuthor.getBook().getTitle(),
                 bookOfAuthor.getBook().getDescription()
         );
     }

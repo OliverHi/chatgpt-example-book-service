@@ -1,0 +1,2 @@
+DELETE FROM authors;
+DELETE FROM books;

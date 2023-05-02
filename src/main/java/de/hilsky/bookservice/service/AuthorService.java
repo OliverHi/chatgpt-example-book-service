@@ -19,6 +19,7 @@ import java.util.UUID;
 public class AuthorService {
 
     private final AuthorRepository authorRepository;
+
     public List<AuthorDTO> getAllAuthors() {
         List<AuthorDTO> authors = authorRepository.findAll().stream()
                 .map(DTOMapper::convert)

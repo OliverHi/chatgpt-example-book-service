@@ -9,6 +9,7 @@ import de.hilsky.bookservice.exception.MissingDataException;
 import de.hilsky.bookservice.model.Author;
 import de.hilsky.bookservice.model.Book;
 import de.hilsky.bookservice.model.BookWithAuthor;
+import de.hilsky.bookservice.openai.ChatGptService;
 import de.hilsky.bookservice.repository.AuthorRepository;
 import de.hilsky.bookservice.repository.BookRepository;
 import org.junit.jupiter.api.Test;
@@ -23,8 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +38,9 @@ class BookServiceTest {
 
     @Mock
     private TransactionalBookService transactionalBookService;
+
+    @Mock
+    private ChatGptService chatGptService;
 
     @InjectMocks
     private BookService bookService;
@@ -162,14 +165,17 @@ class BookServiceTest {
         UUID authorId = UUID.randomUUID();
         String isbn = "12345";
         String title = "Book 1";
+        String description = "this is some generated description";
         BookCreateDTO bookCreateDTO = new BookCreateDTO(title, isbn, authorId, null);
 
         Author author = new Author(authorId, "John", "Doe");
         when(authorRepository.findById(authorId)).thenReturn(Optional.of(author));
 
         UUID bookId = UUID.randomUUID();
-        Book newBook = new Book(bookId, authorId, isbn, title, "");
+        Book newBook = new Book(bookId, authorId, isbn, title, description);
         when(bookRepository.save(any(Book.class))).thenReturn(newBook);
+
+        when(chatGptService.getChatCompletions(anyString())).thenReturn(description);
 
         // when
         BookDTO bookDTO = bookService.createBook(bookCreateDTO);
@@ -180,7 +186,7 @@ class BookServiceTest {
         assertEquals(title, bookDTO.title());
         assertEquals("John Doe", bookDTO.author());
         assertEquals(isbn, bookDTO.isbn());
-        assertEquals("", bookDTO.description());
+        assertEquals(description, bookDTO.description());
     }
 
     @Test
@@ -204,12 +210,15 @@ class BookServiceTest {
         UUID authorId = UUID.randomUUID();
         String isbn = "12345";
         String title = "Book 1";
+        String description = "This is some generated description";
 
         Author author = new Author(authorId, "John", "Doe");
-        Book newBook = new Book(bookId, authorId, isbn, title, "");
+        Book newBook = new Book(bookId, authorId, isbn, title, description);
 
         BookWithAuthor bookWithAuthor = new BookWithAuthor(newBook, author);
         when(transactionalBookService.createBookOfNewAuthor(any(), any())).thenReturn(bookWithAuthor);
+
+        when(chatGptService.getChatCompletions(anyString())).thenReturn(description);
 
         AuthorCreateDTO authorCreateDTO = new AuthorCreateDTO("John", "Doe");
         BookCreateDTO bookCreateDTO = new BookCreateDTO(title, isbn, null, authorCreateDTO);
@@ -223,6 +232,6 @@ class BookServiceTest {
         assertEquals(title, bookDTO.title());
         assertEquals("John Doe", bookDTO.author());
         assertEquals(isbn, bookDTO.isbn());
-        assertEquals("", bookDTO.description());
+        assertEquals(description, bookDTO.description());
     }
 }

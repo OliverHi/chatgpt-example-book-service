@@ -1,14 +1,21 @@
 package de.hilsky.bookservice;
 
+import de.hilsky.bookservice.openai.ChatGptApi;
+import de.hilsky.bookservice.openai.dtos.OpenAiResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlMergeMode;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static de.hilsky.bookservice.TestUtil.getChatCompletions;
+import static de.hilsky.bookservice.TestUtil.getOpenAiTestResponse;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,19 +23,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 @SqlMergeMode(SqlMergeMode.MergeMode.MERGE)
 @Sql(value = "/cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 public class BookControllerIntegrationTest {
-
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private ChatGptApi mockChatGptApi;
 
     @Test
     @Sql(value = "/testBooks.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     void getAllBooks_shouldReturnListOfBooks() throws Exception {
 
         mockMvc.perform(get("/books")
-                    .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("[0].id").value("00000000-0000-0000-0000-000000000005"))
                 .andExpect(jsonPath("[0].author").value("John Ronald Reuel Tolkien"))
@@ -71,6 +81,11 @@ public class BookControllerIntegrationTest {
     @Test
     @Sql(value = "/testBooks.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     void createBook_shouldCreateBookForExistingAuthor() throws Exception {
+        // Set up the mock response
+        String description = "book description";
+        OpenAiResponse expectedResponse = getOpenAiTestResponse(description);
+        when(getChatCompletions(mockChatGptApi)).thenReturn(expectedResponse);
+
         String requestBody = """
                 {
                   "title": "Under the dome",
@@ -87,12 +102,17 @@ public class BookControllerIntegrationTest {
                 .andExpect(jsonPath("author").value("Stephen King"))
                 .andExpect(jsonPath("isbn").value("42424242"))
                 .andExpect(jsonPath("title").value("Under the dome"))
-                .andExpect(jsonPath("description").value(""));
+                .andExpect(jsonPath("description").value(description));
     }
 
     @Test
     @Sql(value = "/testBooks.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     void createBook_shouldCreateBookAndAuthor() throws Exception {
+        // Set up the mock response
+        String description = "book description";
+        OpenAiResponse expectedResponse = getOpenAiTestResponse(description);
+        when(getChatCompletions(mockChatGptApi)).thenReturn(expectedResponse);
+
         String requestBody = """
                 {
                   "title": "Example Book",
@@ -112,6 +132,6 @@ public class BookControllerIntegrationTest {
                 .andExpect(jsonPath("author").value("John Doe"))
                 .andExpect(jsonPath("isbn").value("424242424242"))
                 .andExpect(jsonPath("title").value("Example Book"))
-                .andExpect(jsonPath("description").value(""));
+                .andExpect(jsonPath("description").value(description));
     }
 }

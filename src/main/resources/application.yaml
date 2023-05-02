@@ -1,0 +1,11 @@
+openai.api:
+  url: "https://api.openai.com/v1/chat"
+  key: "thisIsMySecretKey"
+  model: "gpt-3.5-turbo"
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 2000
+        readTimeout: 15000

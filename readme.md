@@ -1,4 +1,6 @@
 # Overview
+This is a demo project to try out ChatGPT.
+
 This service can manage authors and their books. Endpoints support creation of new authors
 and books as well as to list them.
 
@@ -25,6 +27,9 @@ Alternatively you can use the included wrappers on a Linux like system
 or on Windows
 - `mvnw.cmd clean install`
 - `mvnw.cmd spring-boot:run`
+
+To get the connection to chatGpt to work you need to provide a valid key in the configuration
+as `openai.api.key`. The used model and base URL can be updated in the same file. 
 
 # Assumptions
 I assumed, among other things, that

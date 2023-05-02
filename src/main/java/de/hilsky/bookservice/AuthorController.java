@@ -23,7 +23,7 @@ public class AuthorController {
         return authorService.getAllAuthors();
     }
 
-    @GetMapping(value = "/author/{id}",
+    @GetMapping(value = "/authors/{id}",
             produces = MediaType.APPLICATION_JSON_VALUE)
     public AuthorDTO getAuthor(@PathVariable UUID id) {
         return authorService.getAuthor(id);

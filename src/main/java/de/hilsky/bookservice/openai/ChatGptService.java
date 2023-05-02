@@ -23,16 +23,20 @@ public class ChatGptService {
         request.setMessages(Collections.singletonList(message));
         log.info("Send request to chatGPT model {}", config.getModel());
 
-        OpenAiResponse chatCompletions = chatGptApi.getChatCompletions(request, "Bearer " + config.getKey());
-        String answer = Optional.ofNullable(chatCompletions)
-                .map(OpenAiResponse::getChoices)
-                .filter(openAIChoices -> !openAIChoices.isEmpty())
-                .map(openAIChoices -> openAIChoices.get(0))
-                .map(OpenAIChoice::getMessage)
-                .map(OpenAIMessage::getContent)
-                .orElse("");
-
-        log.info("chatGPT answer: {}", answer);
-        return answer;
+        try {
+            OpenAiResponse chatCompletions = chatGptApi.getChatCompletions(request, "Bearer " + config.getKey());
+            String answer = Optional.ofNullable(chatCompletions)
+                    .map(OpenAiResponse::getChoices)
+                    .filter(openAIChoices -> !openAIChoices.isEmpty())
+                    .map(openAIChoices -> openAIChoices.get(0))
+                    .map(OpenAIChoice::getMessage)
+                    .map(OpenAIMessage::getContent)
+                    .orElse("");
+            log.info("chatGPT answer: {}", answer);
+            return answer;
+        } catch (RuntimeException exception) {
+            log.error("Error during call to ChatGpt", exception);
+            return "";
+        }
     }
 }

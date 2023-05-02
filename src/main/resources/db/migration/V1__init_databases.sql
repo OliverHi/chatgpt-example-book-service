@@ -9,7 +9,7 @@ CREATE TABLE books (
     author UUID NOT NULL,
     isbn VARCHAR(255),
     title VARCHAR(255) NOT NULL,
-    description VARCHAR(255)
+    description TEXT
 );
 
 CREATE INDEX idx_books_title ON books (title);

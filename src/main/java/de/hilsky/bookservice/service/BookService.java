@@ -8,6 +8,7 @@ import de.hilsky.bookservice.exception.MissingDataException;
 import de.hilsky.bookservice.model.Author;
 import de.hilsky.bookservice.model.Book;
 import de.hilsky.bookservice.model.BookWithAuthor;
+import de.hilsky.bookservice.openai.ChatGptService;
 import de.hilsky.bookservice.repository.AuthorRepository;
 import de.hilsky.bookservice.repository.BookRepository;
 import de.hilsky.bookservice.util.DTOMapper;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -27,6 +29,7 @@ public class BookService {
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
     private final TransactionalBookService transactionalBookService;
+    private final ChatGptService chatGptService;
 
     public List<BookDTO> getAllBooks() {
         List<Book> books = bookRepository.findAll();
@@ -78,7 +81,9 @@ public class BookService {
         if (bookCreateDTO.authorId() != null) {
             return tryToCreateBookForExistingAuthor(bookCreateDTO);
         } else {
-            Book book = new Book(null, null, bookCreateDTO.isbn(), bookCreateDTO.title(), ""); // TODO get description
+            String authorName = bookCreateDTO.authorCreateDTO().firstName() + " " + bookCreateDTO.authorCreateDTO().lastName();
+            String summary = getSummaryForBook(bookCreateDTO.title(), authorName);
+            Book book = new Book(null, null, bookCreateDTO.isbn(), bookCreateDTO.title(), summary);
             Author author = new Author(null, bookCreateDTO.authorCreateDTO().firstName(), bookCreateDTO.authorCreateDTO().lastName());
             log.info("Creating book {}/{} for new author {} {}", book.getTitle(), book.getIsbn(), author.getFirstName(), author.getLastName());
             return DTOMapper.convert(transactionalBookService.createBookOfNewAuthor(book, author));
@@ -89,12 +94,14 @@ public class BookService {
         Author author = authorRepository.findById(bookCreateDTO.authorId())
                 .orElseThrow(() -> new MissingDataException("This author id does not exist"));
 
+        String summary = getSummaryForBook(bookCreateDTO.title(), author.getFirstName() + " " + author.getLastName());
+
         Book newBook = Book.builder()
                 .id(UUID.randomUUID())
                 .author(author.getId())
                 .isbn(bookCreateDTO.isbn())
                 .title(bookCreateDTO.title())
-                .description("") // TODO get description from API
+                .description(summary)
                 .build();
         log.debug("Creating book {}", newBook);
 
@@ -102,5 +109,14 @@ public class BookService {
         log.info("Saved new book {}", createdBook);
 
         return DTOMapper.convert(new BookWithAuthor(createdBook, author));
+    }
+
+    private String getSummaryForBook(String title, String author) {
+        Locale locale = Locale.ENGLISH; // TODO could be configured
+        String prompt = String.format("Give me a short %s summary of the book %s by the author %s",
+                locale.getLanguage(), title, author);
+        log.info("Prompt for summary is {}", prompt);
+
+        return chatGptService.getChatCompletions(prompt);
     }
 }
